@@ -16,7 +16,7 @@ public class RSMVFS {
 //    private ManagerTempVariables manager = new ManagerTempVariables();
     private Config config;
     private final int n, v, c;
-    private int total_d=0;
+    private int total_d=0, iteration = 1;
     private int[] d;
     private double[] a;
 //    private Sequence s_Wi, s_ai, s_Gi_val, s_Z, s_U, s_XiWi, s_Sb, s_Si, s_XW, s_y_chunk;
@@ -222,19 +222,19 @@ public class RSMVFS {
 //        eq.alias(F, "F", XW, "XW", U, "U");
 //        s_Z.perform();
 //        return eq.lookupDDRM("Z");
-        SimpleMatrix term1, term2, next;
+        SimpleMatrix term1, term2, next, before_invert, inverted;
         double lo = config.getLo();
 
-        term1 = F.scale(2*v);
-        term1 = term1.plus(SimpleMatrix.identity(n).scale(lo));
-        term1 = term1.invert();
+        term1 = F.scale(2*v).copy();
+        before_invert = term1.plus(SimpleMatrix.identity(n).scale(lo));
+        inverted = before_invert.invert();
 
         term2 = F.mult(Y);
         term2 = term2.scale(2*v);
         term2 = term2.plus(XW.scale(lo));
         term2 = term2.plus(U.scale(lo));
 
-        next = term1.mult(term2);
+        next = inverted.mult(term2);
         return next.copy();
     }
 
@@ -275,7 +275,7 @@ public class RSMVFS {
             prev_W[i] = W[i].copy();
         }
 
-        double error = 1.0E10;
+        double error = 1.0E10,lo=config.getLo();
         int iter = 1;
 
         while (error > config.getEps_0()) {
@@ -321,9 +321,12 @@ public class RSMVFS {
             error = calculate_error(prev_W, W);
             prev_W = deepcopy(W);
 
+            config.setLo(Math.min(lo*1.1, config.getLo_max()));
+
 
             System.out.printf("[%4d] Error: %.6f, Z: %.6f, U: %.6f, XW: %.6f\n", iter, error, Z.normF(), U.normF(), XW.normF());
             iter += 1;
+            iteration += 1;
 
         }
 
