@@ -8,38 +8,35 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class RSMVFS {
-    protected ArrayList<DMatrixRMaj> X;
-    protected DMatrixRMaj Y, Z, U, F, y_chunk, XW;
-    protected DMatrixRMaj[] W, S, G;
+    protected SimpleMatrix Y, Z, U, F, y_chunk, XW;
+    protected SimpleMatrix[] X, W, S, G;
 
-    private Equation eq = new Equation();
+//    private Equation eq = new Equation();
     private NormOps_DDRM norm = new NormOps_DDRM();
-    private ManagerTempVariables manager = new ManagerTempVariables();
+//    private ManagerTempVariables manager = new ManagerTempVariables();
     private Config config;
     private final int n, v, c;
     private int total_d=0;
     private int[] d;
     private double[] a;
-    private Sequence s_Wi, s_ai, s_Gi_val, s_Z, s_U, s_XiWi, s_Sb, s_Si, s_XW, s_y_chunk;
+//    private Sequence s_Wi, s_ai, s_Gi_val, s_Z, s_U, s_XiWi, s_Sb, s_Si, s_XW, s_y_chunk;
 
-    RSMVFS(ArrayList<DMatrixRMaj> X, DMatrixRMaj Y, Config config) {
+    RSMVFS(SimpleMatrix[] X, SimpleMatrix Y, Config config) {
         this.X = X;
         this.Y = Y;
-        this.n = Y.numRows;
-        this.c = Y.numCols;
-        this.v = X.size();
+        this.n = Y.numRows();
+        this.c = Y.numCols();
+        this.v = X.length;
 
-        W = new DMatrixRMaj[v];
-        G = new DMatrixRMaj[v];
-        S = new DMatrixRMaj[v];
+        W = new SimpleMatrix[v];
+        G = new SimpleMatrix[v];
+        S = new SimpleMatrix[v];
 
         d = new int[v];
 
-        double[][] base = new double[n][c];
-
-        this.Z = new DMatrixRMaj(base.clone());
-        this.U = new DMatrixRMaj(base.clone());
-        this.F = new DMatrixRMaj(base.clone());
+        this.Z = new SimpleMatrix(new double[n][c]);
+        this.U = new SimpleMatrix(new double[n][c]);
+        this.F = new SimpleMatrix(new double[n][c]);
 
         this.config = config;
 
@@ -49,14 +46,12 @@ public class RSMVFS {
         }
 
         initialize_W();
-        initialize_alias();
-
-        s_y_chunk.perform();
-        this.y_chunk = eq.lookupDDRM("y_chunk");
+//        initialize_alias();
+        setY_chunk();
 
         for(int i=0; i<v; i++){
 
-            S[i] = (calculate_S_i(X.get(i)));
+            S[i] = (calculate_S_i(X[i]));
         }
 
         this.XW = calculate_XW(X, W);
@@ -64,36 +59,41 @@ public class RSMVFS {
 
     }
 
-    private void initialize_alias(){
-        DMatrixRMaj Xi = X.get(0), Wi = W[0], Si, Gi, F;
-        int di = Xi.numCols, row=0;
-
-        Si = new DMatrixRMaj(di, di);
-        Gi = new DMatrixRMaj(di, di);
-        F = new DMatrixRMaj(n, n);
-        XW = new DMatrixRMaj(n, c);
-        y_chunk = new DMatrixRMaj(n, n);
-
-        double ai = a[0], lo = config.getLo(), l1 = config.getL1(), l2 = config.getL2();
-
-        eq.alias(Xi, "Xi", Si, "Si", Wi, "Wi", Gi, "Gi", XW, "XW", U, "U", Z, "Z", v, "v",
-                ai, "ai", lo, "lo", l1, "l1", l2, "l2", row, "row", F, "F", y_chunk, "y_chunk", Y, "Y");
-
-        s_Wi = eq.compile("Wi = lo*inv(2*(l1/ai)*Gi + lo*Xi'*Xi + l2*Si)*(Xi'*Z + Xi'*Xi*Wi - Xi'*XW - Xi'*U)");
-        s_XW = eq.compile("XW= Xi*Wi");
-        s_Sb = eq.compile("Sb= Xi'*y_chunk*Xi");
-        s_Si = eq.compile("Si= Xi'*Xi - 2*Sb");
-        s_ai = eq.compile("ai= trace(Wi'*Gi*Wi)");
-        s_Gi_val = eq.compile("Gi_val = normF(Wi(row, :))");
-//        s_XiWi = eq.compile("XiWi = Xi*Wi");
-        s_Z = eq.compile("Z = inv(2*v*F + lo*eye(F))*(2*v*F*Y + lo*XW + lo*U)");
-        s_U = eq.compile("U_next = U + XW - Z");
-        s_y_chunk = eq.compile("y_chunk = Y*inv(Y'*Y)*Y'");
+    private void setY_chunk(){
+        y_chunk = Y.mult((Y.transpose().mult(Y)).invert());
+        y_chunk = y_chunk.mult(Y.transpose());
     }
 
+//    private void initialize_alias(){
+//        DMatrixRMaj Xi = X.get(0), Wi = W[0], Si, Gi, F;
+//        int di = Xi.numCols, row=0;
+//
+//        Si = new DMatrixRMaj(di, di);
+//        Gi = new DMatrixRMaj(di, di);
+//        F = new DMatrixRMaj(n, n);
+//        XW = new DMatrixRMaj(n, c);
+//        y_chunk = new DMatrixRMaj(n, n);
+//
+//        double ai = a[0], lo = config.getLo(), l1 = config.getL1(), l2 = config.getL2();
+//
+//        eq.alias(Xi, "Xi", Si, "Si", Wi, "Wi", Gi, "Gi", XW, "XW", U, "U", Z, "Z", v, "v",
+//                ai, "ai", lo, "lo", l1, "l1", l2, "l2", row, "row", F, "F", y_chunk, "y_chunk", Y, "Y");
+//
+//        s_Wi = eq.compile("Wi = lo*inv(2*(l1/ai)*Gi + lo*Xi'*Xi + l2*Si)*(Xi'*Z + Xi'*Xi*Wi - Xi'*XW - Xi'*U)");
+//        s_XW = eq.compile("XW= Xi*Wi");
+//        s_Sb = eq.compile("Sb= Xi'*y_chunk*Xi");
+//        s_Si = eq.compile("Si= Xi'*Xi - 2*Sb");
+//        s_ai = eq.compile("ai= trace(Wi'*Gi*Wi)");
+//        s_Gi_val = eq.compile("Gi_val = normF(Wi(row, :))");
+////        s_XiWi = eq.compile("XiWi = Xi*Wi");
+//        s_Z = eq.compile("Z = inv(2*v*F + lo*eye(F))*(2*v*F*Y + lo*XW + lo*U)");
+//        s_U = eq.compile("U_next = U + XW - Z");
+//        s_y_chunk = eq.compile("y_chunk = Y*inv(Y'*Y)*Y'");
+//    }
+
     private void initialize_W(){
-        for (int i=0; i< X.size(); i++){
-            int di = X.get(i).numCols;
+        for (int i=0; i< X.length; i++){
+            int di = X[i].numCols();
             d[i] = di;
             total_d += di;
             DMatrixRMaj base = new DMatrixRMaj(di, c);
@@ -103,71 +103,86 @@ public class RSMVFS {
                 base.set(j, j, Math.pow(10, -3));
             }
 
-            W[i] = base;
+            W[i] = new SimpleMatrix(base);
         }
     }
 
-    private DMatrixRMaj calculate_S_i(DMatrixRMaj Xi){
-        eq.alias(Xi, "Xi", y_chunk, "y_chunk");
-        s_Sb.perform();
-        DMatrixRMaj S_b = eq.lookupDDRM("Sb");
-        eq.alias(S_b, "Sb");
-        s_Si.perform();
-        return eq.lookupDDRM("Si").copy();
+    private SimpleMatrix calculate_S_i(SimpleMatrix Xi){
+//        eq.alias(Xi, "Xi", y_chunk, "y_chunk");
+//        s_Sb.perform();
+//        DMatrixRMaj S_b = eq.lookupDDRM("Sb");
+//        eq.alias(S_b, "Sb");
+//        s_Si.perform();
+//        return eq.lookupDDRM("Si").copy();
 
+        SimpleMatrix term1, Si;
+        term1 = Xi.transpose().mult(y_chunk).mult(Xi);
+        Si = Xi.transpose().mult(Xi);
+        Si = Si.minus(term1.scale(2));
+        return Si;
     }
 
-    private DMatrixRMaj calculate_XW(ArrayList<DMatrixRMaj> _X, DMatrixRMaj[] _W){
+    private SimpleMatrix calculate_XW(SimpleMatrix[] X, SimpleMatrix[] W){
+        // TODO: XW랑 Z 연산에 문제 없는지 확인하기
         SimpleMatrix temp = new SimpleMatrix(n, c);
         SimpleMatrix Xi, Wi;
 
         for(int i=0; i<v; i++){
 
-//            eq.alias(X.get(i), "Xi", W[i], "Wi");
+//            eq.alias(X[i], "Xi", W[i], "Wi");
 //            s_XW.perform();
 //
 //            temp = temp.plus(SimpleMatrix.wrap(eq.lookupDDRM("XW")));
 
-            Xi = SimpleMatrix.wrap(_X.get(i));
-            Wi = SimpleMatrix.wrap(_W[i]);
-            temp.plus(Xi.mult(Wi));
+            Xi = X[i];
+            Wi = W[i];
+            temp = temp.plus(Xi.mult(Wi));
 
         }
 
-        return (DMatrixRMaj) temp.divide(v).getMatrix().copy();
+        return temp.divide(v);
     }
 
     private double norm(double[] a){
         return Math.sqrt(Arrays.stream(a).map(s -> s*s).sum());
     }
 
-    private DMatrixRMaj calculate_Gi(DMatrixRMaj Wi){
-        eq.alias(Wi, "Wi");
-        int di = Wi.numRows;
+    private SimpleMatrix calculate_Gi(SimpleMatrix Wi){
+//        eq.alias(Wi, "Wi");
+        int di = Wi.numRows();
         double[] diag = new double[di];
+        double norm;
 
         for(int row=0; row<di; row++){
-            eq.alias(row, "row");
-            s_Gi_val.perform();
-            diag[row] = 1/(eq.lookupDouble("Gi_val") + config.getEps());
+//            eq.alias(row, "row");
+//            s_Gi_val.perform();
+//            diag[row] = 1/(eq.lookupDouble("Gi_val") + config.getEps());
+            norm = Wi.extractVector(true, row).normF();
+            diag[row] = 1 / (norm + config.getEps());
 
         }
 
-        DMatrixRMaj D_diag = new DMatrixRMaj(diag);
-
-        eq.alias(D_diag, "D_diag");
-        eq.process("Gi=diag(D_diag)");
-        DMatrixRMaj Gi = eq.lookupDDRM("Gi");
-        return Gi.copy();
+//        DMatrixRMaj D_diag = new DMatrixRMaj(diag);
+        return SimpleMatrix.diag(diag).copy();
+//        eq.alias(D_diag, "D_diag");
+//        eq.process("Gi=diag(D_diag)");
+//        DMatrixRMaj Gi = eq.lookupDDRM("Gi");
+//        return Gi.copy();
     }
 
-    private double[] calculate_a(DMatrixRMaj[] W, DMatrixRMaj[] G){
+    private double[] calculate_a(SimpleMatrix[] W, SimpleMatrix[] G){
         double[] a = new double[v];
+        double trace;
+        SimpleMatrix Wi, Gi, temp;
 
         for(int i=0; i<v; i++){
-            eq.alias(W[i], "Wi", G[i], "Gi");
-            s_ai.perform();
-            a[i] = Math.sqrt(eq.lookupDouble("ai"));
+//            eq.alias(W[i], "Wi", G[i], "Gi");
+//            s_ai.perform();
+//            a[i] = Math.sqrt(eq.lookupDouble("ai"));
+            Wi = W[i]; Gi = G[i];
+            temp = Wi.transpose().mult(Gi).mult(Wi);
+            trace = temp.trace();
+            a[i] = Math.sqrt(trace);
 
         }
 
@@ -175,22 +190,22 @@ public class RSMVFS {
         return Arrays.stream(a).map(s->s/total + Math.pow(10, -9)).toArray();
     }
 
-    private DMatrixRMaj calculate_F(DMatrixRMaj[] W){
+    private SimpleMatrix calculate_F(SimpleMatrix[] W){
         SimpleMatrix summation = SimpleMatrix.wrap(new DMatrixRMaj(n, c)), Xi, Wi;
         double[] diagonal = new double[n];
         double norm_of_vec;
 
         for(int i=0; i<v; i++){
-//            eq.alias(X.get(i), "Xi", W[i], "Wi");
+//            eq.alias(X[i], "Xi", W[i], "Wi");
 //            s_XW.perform();
 //            DMatrixRMaj result = eq.lookupDDRM("XW");
-            Xi = SimpleMatrix.wrap(X.get(i));
-            Wi = SimpleMatrix.wrap(W[i]);
-            summation.plus(Xi.mult(Wi));
+            Xi = X[i];
+            Wi = W[i];
+            summation = summation.plus(Xi.mult(Wi));
 //            summation = summation.plus(SimpleMatrix.wrap(result));
         }
 
-        SimpleMatrix term = summation.minus(SimpleMatrix.wrap(Y));
+        SimpleMatrix term = summation.minus(Y);
 
         for(int i=0; i<term.numRows(); i++){
             norm_of_vec = term.extractVector(true, i).normF();
@@ -199,57 +214,52 @@ public class RSMVFS {
             }
         }
 
-        return (DMatrixRMaj) SimpleMatrix.diag(diagonal).getMatrix();
+        return SimpleMatrix.diag(diagonal).copy();
 
     }
 
-    private DMatrixRMaj calculate_Z(DMatrixRMaj _F, DMatrixRMaj _XW, DMatrixRMaj _U){
+    private SimpleMatrix calculate_Z(SimpleMatrix F, SimpleMatrix XW, SimpleMatrix U){
 //        eq.alias(F, "F", XW, "XW", U, "U");
 //        s_Z.perform();
 //        return eq.lookupDDRM("Z");
-        SimpleMatrix term1, term2, next, XW = SimpleMatrix.wrap(_XW), F = SimpleMatrix.wrap(_F), U=SimpleMatrix.wrap(_U);
+        SimpleMatrix term1, term2, next;
         double lo = config.getLo();
 
         term1 = F.scale(2*v);
         term1 = term1.plus(SimpleMatrix.identity(n).scale(lo));
+        term1 = term1.invert();
 
-        term2 = F.mult(SimpleMatrix.wrap(Y));
+        term2 = F.mult(Y);
         term2 = term2.scale(2*v);
         term2 = term2.plus(XW.scale(lo));
         term2 = term2.plus(U.scale(lo));
 
-        next = term1.invert().mult(term2);
-        return (DMatrixRMaj) next.getMatrix();
+        next = term1.mult(term2);
+        return next.copy();
     }
 
-    private DMatrixRMaj update_U(DMatrixRMaj U, DMatrixRMaj XW, DMatrixRMaj Z){
+    private SimpleMatrix update_U(SimpleMatrix U, SimpleMatrix XW, SimpleMatrix Z){
 //        eq.alias(U, "U", XW, "XW", Z, "Z");
 //        s_U.perform();
 //        return eq.lookupDDRM("U_next").copy();
         SimpleMatrix U_next;
-        U_next = SimpleMatrix.wrap(U).plus(SimpleMatrix.wrap(XW)).minus(SimpleMatrix.wrap(Z));
-        return (DMatrixRMaj) U_next.getMatrix();
+        U_next = U.plus(XW).minus(Z);
+        return U_next.copy();
     }
 
-    private double calculate_error(DMatrixRMaj[] prev_W, DMatrixRMaj[] W){
+    private double calculate_error(SimpleMatrix[] prev_W, SimpleMatrix[] W){
 //        eq.process("prev_concat = ")
-        SimpleMatrix[] simple_prev_W = new SimpleMatrix[v], simple_W = new SimpleMatrix[v];
-        for(int i=0; i<v; i++) {
-            simple_prev_W[i] = SimpleMatrix.wrap(prev_W[i]);
-            simple_W[i] = SimpleMatrix.wrap(W[i]);
-        }
-
         SimpleMatrix prev_concat = SimpleMatrix.wrap(new DMatrixRMaj(n, total_d));
         SimpleMatrix current_concat = SimpleMatrix.wrap(new DMatrixRMaj(n, total_d));
 
-        prev_concat = prev_concat.concatColumns(simple_prev_W);
-        current_concat = current_concat.concatColumns(simple_W);
+        prev_concat = prev_concat.concatColumns(prev_W);
+        current_concat = current_concat.concatColumns(W);
 
         return prev_concat.minus(current_concat).normF();
     }
 
-    private DMatrixRMaj[] deepcopy(DMatrixRMaj[] a){
-        DMatrixRMaj[] copied = new DMatrixRMaj[a.length];
+    private SimpleMatrix[] deepcopy(SimpleMatrix[] a){
+        SimpleMatrix[] copied = new SimpleMatrix[a.length];
         for(int i=0; i<a.length; i++){
             copied[i] = a[i].copy();
         }
@@ -257,7 +267,7 @@ public class RSMVFS {
     }
 
     public void start(){
-        DMatrixRMaj[] prev_W = new DMatrixRMaj[v];
+        SimpleMatrix[] prev_W = new SimpleMatrix[v];
         RSMVFS_Local[] impl = new RSMVFS_Local[v];
         Thread[] threads = new Thread[v];
 
@@ -277,8 +287,8 @@ public class RSMVFS {
 
             // Wi start
             for(int i=0; i<impl.length; i++){
-                impl[i] = new RSMVFS_Local(X.get(i), S[i], W[i], G[i], XW, U, Z,
-                        a[i], config.getLo(), config.getL1(), config.getL2(), s_Wi);
+                impl[i] = new RSMVFS_Local(X[i], S[i], W[i], G[i], XW, U, Z,
+                        a[i], config.getLo(), config.getL1(), config.getL2());
                 threads[i] = new Thread(impl[i]);
             }
 
@@ -312,7 +322,7 @@ public class RSMVFS {
             prev_W = deepcopy(W);
 
 
-            System.out.printf("[%4d] Error: %.6f, Z: %.6f, U: %.6f\n", iter, error, SimpleMatrix.wrap(Z).normF(), SimpleMatrix.wrap(U).normF());
+            System.out.printf("[%4d] Error: %.6f, Z: %.6f, U: %.6f, XW: %.6f\n", iter, error, Z.normF(), U.normF(), XW.normF());
             iter += 1;
 
         }
@@ -321,24 +331,30 @@ public class RSMVFS {
 }
 
 class RSMVFS_Local implements Runnable{
-    private SimpleMatrix Xi, XW, Si, Wi, Gi, U, Z;
-    private DMatrixRMaj result;
+    private SimpleMatrix Xi, XW, Si, Wi, Gi, U, Z, result;
     private final double lo, l1, l2, ai;
 //    private Sequence s_W;
 //    private Equation eq = new Equation();
 
-    RSMVFS_Local(DMatrixRMaj Xi, DMatrixRMaj Si,
-                 DMatrixRMaj Wi, DMatrixRMaj Gi, DMatrixRMaj XW, DMatrixRMaj U, DMatrixRMaj Z, double ai,
-                 double lo, double l1, double l2,
-                 Sequence s_W
+    RSMVFS_Local(SimpleMatrix Xi, SimpleMatrix Si,
+                 SimpleMatrix Wi, SimpleMatrix Gi, SimpleMatrix XW, SimpleMatrix U, SimpleMatrix Z, double ai,
+                 double lo, double l1, double l2
                  ) {
-        this.Xi = SimpleMatrix.wrap(Xi);
-        this.Si = SimpleMatrix.wrap(Si);
-        this.Wi = SimpleMatrix.wrap(Wi);
-        this.Gi = SimpleMatrix.wrap(Gi);
-        this.XW = SimpleMatrix.wrap(XW);
-        this.U = SimpleMatrix.wrap(U);
-        this.Z = SimpleMatrix.wrap(Z);
+//        this.Xi = SimpleMatrix.wrap(Xi);
+//        this.Si = SimpleMatrix.wrap(Si);
+//        this.Wi = SimpleMatrix.wrap(Wi);
+//        this.Gi = SimpleMatrix.wrap(Gi);
+//        this.XW = SimpleMatrix.wrap(XW);
+//        this.U = SimpleMatrix.wrap(U);
+//        this.Z = SimpleMatrix.wrap(Z);
+
+        this.Xi = Xi;
+        this.Si = Si;
+        this.Wi = Wi;
+        this.Gi = Gi;
+        this.XW = XW;
+        this.U = U;
+        this.Z = Z;
 
         this.ai = ai;
         this.lo = lo;
@@ -366,11 +382,11 @@ class RSMVFS_Local implements Runnable{
         term2 = term2.minus(Xi.transpose().mult(XW));
         term2 = term2.minus(Xi.transpose().mult(U));
 
-        result = (DMatrixRMaj) term1.invert().mult(term2).scale(lo).getMatrix().copy();
+        result = term1.invert().mult(term2).scale(lo).copy();
 
     }
 
-    public DMatrixRMaj get_result(){
+    public SimpleMatrix get_result(){
         return result;
     }
 }

@@ -1,5 +1,6 @@
 import com.opencsv.exceptions.CsvException;
 import org.ejml.data.DMatrixRMaj;
+import org.ejml.simple.SimpleMatrix;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,22 +12,23 @@ public class GetData {
         path = data_root;
     }
 
-    public ArrayList<DMatrixRMaj> get_x(int v) throws IOException, CsvException {
+    public SimpleMatrix[] get_x(int v) throws IOException, CsvException {
         ConvertXiToMatrix converter = new ConvertXiToMatrix();
-        ArrayList<DMatrixRMaj> X = new ArrayList<>();
+        SimpleMatrix[] X = new SimpleMatrix[v];
+
         for (int i = 0; i < v; i++) {
             String path = this.path + i + ".csv";
-            DMatrixRMaj Xi = converter.readAll(path);
-            X.add(Xi);
+            SimpleMatrix Xi = converter.readAll(path);
+            X[i] = Xi;
         }
 
         return X;
     }
 
-    public DMatrixRMaj get_y() throws IOException, CsvException {
+    public SimpleMatrix get_y() throws IOException, CsvException {
         ConvertXiToMatrix converter = new ConvertXiToMatrix();
         String path = this.path + "Y.csv";
-        DMatrixRMaj Y = converter.readAll(path);
+        SimpleMatrix Y = converter.readAll(path);
         return Y;
     }
 }

@@ -2,6 +2,7 @@ import com.opencsv.exceptions.CsvException;
 import com.opencsv.exceptions.CsvValidationException;
 import org.ejml.data.DMatrixRMaj;
 import org.ejml.dense.row.RandomMatrices_DDRM;
+import org.ejml.simple.SimpleMatrix;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -15,8 +16,8 @@ public class main {
         String path = currentDir + String.format("\\src\\main\\resources\\%s\\", target);
         GetData loader = new GetData(path);
 
-        ArrayList<DMatrixRMaj> X = loader.get_x(5);
-        DMatrixRMaj Y = loader.get_y();
+        SimpleMatrix[] X = loader.get_x(6);
+        SimpleMatrix Y = loader.get_y();
 
 //        ArrayList<DMatrixRMaj> X = new ArrayList<>();
 //        int[] d = {50, 90, 100, 20, 30};

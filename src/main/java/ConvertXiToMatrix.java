@@ -10,11 +10,12 @@ import java.util.List;
 import com.opencsv.exceptions.CsvException;
 import com.opencsv.exceptions.CsvValidationException;
 import org.ejml.data.DMatrixRMaj;
+import org.ejml.simple.SimpleMatrix;
 
 public class ConvertXiToMatrix {
     ConvertXiToMatrix(){}
 
-    public DMatrixRMaj readAll(String path) throws IOException, CsvException {
+    public SimpleMatrix readAll(String path) throws IOException, CsvException {
         FileReader filereader = new FileReader(path);
         CSVReader csvReader = new CSVReaderBuilder(filereader).build();
         List<String[]> allData = csvReader.readAll();
@@ -32,7 +33,7 @@ public class ConvertXiToMatrix {
 
 
 //        System.out.println(allData);
-        return Xi;
+        return SimpleMatrix.wrap(Xi).copy();
 
     }
 }
