@@ -9,11 +9,11 @@ public class Config {
 
     Config(){
         lo = 1;
-        l1 = 10^-2;
-        l2 = 10^-3;
-        eps = 10^-6;
-        eps_0 = 10^-3;
-        lo_max = 10^6;
+        l1 = Math.pow(10, -2);
+        l2 = Math.pow(10, -3);
+        eps = Math.pow(10, -6);
+        eps_0 = Math.pow(10, -3);
+        lo_max = Math.pow(10, 6);
         verbose = true;
     }
 
