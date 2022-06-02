@@ -27,14 +27,14 @@ public class main {
 //        DMatrixRMaj Y = RandomMatrices_DDRM.rectangle(100, 4, new Random());
 
         Config config = new Config();
-        config.setEps_0(Math.pow(10, -50));
+//        config.setEps_0(Math.pow(10, -6));
 
         RSMVFS model = new RSMVFS(X, Y, config);
         long startTime = System.nanoTime();
         model.start();
         long endTime = System.nanoTime();
         long lTime = endTime - startTime;
-        System.out.println("TIME : " + lTime/1000000.0 + "(ms)");
+        System.out.println("TIME : " + lTime/1000.0 + "(s)");
 
 //        RSMVFS_NoParallel model_seq = new RSMVFS_NoParallel(X, Y, config);
 //        startTime = System.nanoTime();

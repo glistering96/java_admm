@@ -27,7 +27,7 @@ public class ConvertXiToMatrix {
         for (int i=0; i<N; i++){
             String[] D = allData.get(i);
             for(int j=0; j<d_i; j++){
-                Xi.set(i, j, Float.parseFloat(D[j]));
+                Xi.set(i, j, Double.parseDouble(D[j]));
             }
         }
 

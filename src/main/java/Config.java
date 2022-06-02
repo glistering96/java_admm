@@ -10,7 +10,7 @@ public class Config {
     Config(){
         lo = 1;
         l1 = Math.pow(10, -2);
-        l2 = Math.pow(10, -3);
+        l2 = Math.pow(10, -1);
         eps = Math.pow(10, -6);
         eps_0 = Math.pow(10, -3);
         lo_max = Math.pow(10, 6);
