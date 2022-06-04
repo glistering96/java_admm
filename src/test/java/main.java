@@ -1,47 +1,64 @@
 import com.opencsv.exceptions.CsvException;
-import com.opencsv.exceptions.CsvValidationException;
-import org.ejml.data.DMatrixRMaj;
 import org.ejml.dense.row.RandomMatrices_DDRM;
 import org.ejml.simple.SimpleMatrix;
 
 import java.io.IOException;
-import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Random;
 
 public class main {
+    static String currentDir = System.getProperty("user.dir");
     public static void main(String[] args) throws CsvException, IOException {
-        String currentDir = System.getProperty("user.dir");
-        String target = "MF";
-        String path = currentDir + String.format("\\src\\main\\resources\\%s\\", target);
-        GetData loader = new GetData(path);
+        String[] targets = {"SA", "AD", "MF"};
+        int[] num_view = {6, 5, 6};
+        long startTime, endTime, lTime;
 
-        SimpleMatrix[] X = loader.get_x(6);
-        SimpleMatrix Y = loader.get_y();
+        for(int t=0; t<targets.length; t++) {
+            String target = targets[t];
+            String path = currentDir + String.format("\\src\\main\\resources\\%s\\", target);
+            SaveW writer = new SaveW();
+            String save_path = currentDir + String.format("\\src\\main\\results\\%s\\", target);
+            GetData loader = new GetData(path);
 
-//        ArrayList<DMatrixRMaj> X = new ArrayList<>();
-//        int[] d = {50, 90, 100, 20, 30};
-//        for(int i=0; i<5; i++){
-//            X.add(RandomMatrices_DDRM.rectangle(100, d[i], new Random()));
-//        }
-//        DMatrixRMaj Y = RandomMatrices_DDRM.rectangle(100, 4, new Random());
+            System.out.println("Running on " + target);
 
-        Config config = new Config();
-//        config.setEps_0(Math.pow(10, -6));
+            SimpleMatrix[] X = loader.get_x(num_view[t]);
+            SimpleMatrix Y = loader.get_y();
+            SimpleMatrix[] results;
 
-        RSMVFS model = new RSMVFS(X, Y, config);
-        long startTime = System.nanoTime();
-        model.start();
-        long endTime = System.nanoTime();
-        long lTime = endTime - startTime;
-        System.out.println("TIME : " + lTime/1000.0 + "(s)");
+//            SimpleMatrix[] X = new SimpleMatrix[6];
+//            int num_rows = 3000, c = 10, n=3000;
+//            int[] d = {3700, 4000, 3400, 3200, 2500, 3000};
+//            for(int i=0; i<X.length; i++){
+//                X[i] = SimpleMatrix.wrap(RandomMatrices_DDRM.rectangle(num_rows, d[i], new Random()));
+//            }
+//                SimpleMatrix Y = new SimpleMatrix(n, c);
+//
+//            for(int i=0; i<n; i++){
+//                Y.set(i, i%c);
+//            }
 
-//        RSMVFS_NoParallel model_seq = new RSMVFS_NoParallel(X, Y, config);
-//        startTime = System.nanoTime();
-//        model_seq.start();
-//        endTime = System.nanoTime();
-//        lTime = endTime - startTime;
-//        System.out.println("TIME : " + lTime/1000000.0 + "(ms)");
+            Config config = new Config();
+            config.setEps_0(Math.pow(10, -12));
+            RSMVFS model = new RSMVFS(X, Y, config);
+            startTime = System.currentTimeMillis();
+            results = model.start();
+            endTime = System.currentTimeMillis();
+            lTime = endTime - startTime;
+            System.out.println("TIME : " + lTime + "(ms)");
+            writer.save(save_path, results, true);
+
+            config.setLo(1.0);
+            RSMVFS_NoParallel model_seq = new RSMVFS_NoParallel(X, Y, config);
+            startTime = System.currentTimeMillis();
+            results = model_seq.start();
+            endTime = System.currentTimeMillis();
+            lTime = endTime - startTime;
+            System.out.println("TIME : " + lTime + "(ms)");
+            writer.save(save_path, results, false);
+
+            System.out.println("Running on " + target + " ended");
+            System.out.println("#####################################################################################");
+        }
 
     }
 

@@ -1,17 +1,9 @@
 import org.ejml.data.DMatrixRMaj;
-import org.ejml.dense.row.NormOps_DDRM;
-import org.ejml.equation.*;
-import org.ejml.simple.SimpleBase;
 import org.ejml.simple.SimpleMatrix;
-
-import java.util.ArrayList;
-import java.util.Arrays;
 
 public class RSMVFS {
     protected SimpleMatrix Y, Z, U, F, y_chunk, XW;
     protected SimpleMatrix[] X, W, S, G;
-
-    private NormOps_DDRM norm = new NormOps_DDRM();
     private Config config;
     private final int n, v, c;
     private double lo, l1, l2;
@@ -218,7 +210,7 @@ public class RSMVFS {
         return true;
     }
 
-    public void start(){
+    public SimpleMatrix[] start(){
         SimpleMatrix[] prev_W = new SimpleMatrix[v];
         RSMVFS_Local[] impl = new RSMVFS_Local[v];
         Thread[] threads = new Thread[v];
@@ -275,12 +267,12 @@ public class RSMVFS {
 
             config.setLo(Math.min(config.getLo()*1.1, config.getLo_max()));
 
-            System.out.printf("[%4d] Error: %.6f, Z: %.6f, U: %.6f, XW: %.6f, XW, Z equality: %b\n", iter, error, Z.normF(), U.normF(), XW.normF(), matEquals(XW, Z));
+            System.out.printf("[%4d] Error: %.6f, Z: %.6f, U: %.6f, XW: %.6f\n", iter, error, Z.normF(), U.normF(), XW.normF());
             iter += 1;
             iteration += 1;
 
         }
-
+        return W;
     }
 }
 
